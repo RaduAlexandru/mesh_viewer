@@ -137,14 +137,18 @@ void Gui::update(){
 
   if (ImGui::Curve("Das editor", ImVec2(400, 200), 10, foo))
   {
-    // foo[0].y=ImGui::CurveValue(foo[0].x, 5, foo);
-    // foo[1].y=ImGui::CurveValue(foo[1].x, 5, foo);
-    // foo[2].y=ImGui::CurveValue(foo[2].x, 5, foo);
-    // foo[3].y=ImGui::CurveValue(foo[3].x, 5, foo);
-    // foo[4].y=ImGui::CurveValue(foo[4].x, 5, foo);
+  }
+
+  ImGui::ColorEdit3("clear color", (float*)&m_sim->m_renderer->m_clear_color);
+
+
+  if (ImGui::Button("Load mesh")){
+    std::cout << "loading mesh" << '\n';
+    m_sim->load_mesh();
+    m_sim->upload_mesh();
   }
 
 
-  ImGui::ColorEdit3("clear color", (float*)&m_sim->m_renderer->m_clear_color);
+
 
 }
