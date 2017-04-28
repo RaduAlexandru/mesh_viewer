@@ -197,8 +197,9 @@ int main(int, char**){
 
 
     //Load ply
-    std::string file_path = "/media/alex/Data/Master/SHK/Data/euroc/mve_scene_inpainted/surface-L2-clean.ply";
+    // std::string file_path = "/media/alex/Data/Master/SHK/Data/euroc/mve_scene_inpainted/surface-L2-clean.ply";
     // std::string file_path = "/media/alex/Data/Master/SHK/Data/euroc/mesh.ply"; //The one that first failed to load
+		std::string file_path = "/media/alex/Data/Master/SHK/Data/euroc/surface-L1-clean2.ply"; //The one wit 500mb
     // std::string file_path = "/media/alex/Data/Master/SHK/Data/Custom/custom_cyl_1.ply"; //doesnt correctly open since it doesnt have color
     // std::string file_path = "/media/alex/Data/Master/SHK/Data/New_data/ply_3/optim_colored_o4.ply";
     // PLYModel mesh (file_path.data(),false,true);
@@ -254,25 +255,18 @@ int main(int, char**){
 
     std::vector <float> colors_gl(colors.size());
     for (size_t i = 0; i < colors.size(); i++) {
-      // std::cout << "before is " << (int)colors[i] << '\n';
       colors_gl[i]=colors[i]/255.0f;
-      // std::cout << "after is " << (float)colors_gl[i] << '\n';
-      // std::cout  << '\n';
     }
     colors.clear();
 
 
-    for (size_t i = 0; i < verts.size(); i++) {
-      if (std::fabs(verts[i])>100){
-        verts[i]=0.0;
-      }
-    }
-
-
-
-
-
-
+    // for (size_t i = 0; i < verts.size(); i++) {
+    //   if (std::fabs(verts[i])>100){
+		// 		std::cout << "deleting points" << '\n';
+    //     verts[i]=0.0;
+    //   }
+    // }
+		// return 1;
 
 
 
@@ -304,8 +298,10 @@ int main(int, char**){
     std::cout << "size ibo= " << size_ibo << '\n';
     glBufferData(GL_ARRAY_BUFFER, size_vbo  , nullptr, GL_STATIC_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, size_positions, verts.data());
+    verts.clear();
     glBufferSubData(GL_ARRAY_BUFFER, size_positions,
                 size_colors, colors_gl.data());
+    colors_gl.clear();
 
 
 
@@ -370,7 +366,15 @@ int main(int, char**){
       glClear(GL_COLOR_BUFFER_BIT);
       glClearColor(m_clear_color.x, m_clear_color.y, m_clear_color.z, m_clear_color.w);
 
-        glCullFace(GL_FRONT /* or GL_BACK or even GL_FRONT_AND_BACK */);
+			// glClearDepth(1.0f);
+			// glDepthFunc(GL_LESS);
+			// glEnable(GL_DEPTH_TEST);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glEnable(GL_CULL_FACE);
+			glEnable(GL_DEPTH_TEST);
+			glDepthMask(GL_TRUE);
+
+      glCullFace(GL_BACK  /* or GL_BACK or even GL_FRONT_AND_BACK */);
 
 
 
