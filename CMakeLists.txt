@@ -42,5 +42,5 @@ message (${IMGUI_SRC})
 
 
 add_executable(viewer src/main.cxx deps/glad/glad.c src/ShaderProgram.cxx src/Gui.cxx src/ShaderProgram.cxx src/Renderer.cxx
- src/Scene.cxx  src/Simulation.cxx  ${IMGUI_SRC})
+ src/Scene.cxx  src/Simulation.cxx src/plyloader.cpp src/tinyply.cpp  ${IMGUI_SRC})
 target_link_libraries(viewer ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS} ${OPENGL_gl_LIBRARY} ${GLFW_LIBRARIES})

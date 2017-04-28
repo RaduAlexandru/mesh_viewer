@@ -4,6 +4,8 @@
 #include <math.h>
 
 
+#define GLM_FORCE_RADIANS
+
 //OPENGL
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -28,19 +30,50 @@
 #define ARCBALL_CAMERA_IMPLEMENTATION
 #include "baseline/arcball_camera.h"
 
+#include "baseline/plyloader.h"
+#include "baseline/tinyply.h"
+
+#define BUFFER_OFFSET(i) ((char*)NULL +(i))
+
+
+
+
+using namespace tinyply;
+
+typedef std::chrono::time_point<std::chrono::high_resolution_clock> timepoint;
+std::chrono::high_resolution_clock c;
+
+inline std::chrono::time_point<std::chrono::high_resolution_clock> now()
+{
+	return c.now();
+}
+inline double difference_micros(timepoint start, timepoint end)
+{
+	return (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+}
+
+
+
+
 
 int mAccumulatedMouseWheel=0;
 
-static struct
-{
-    float x, y;
-    float r, g, b;
-} vertices[3] =
-{
-    { -0.6f, -0.4f, 1.f, 0.f, 0.f },
-    {  0.6f, -0.4f, 0.f, 1.f, 0.f },
-    {   0.f,  0.6f, 0.f, 0.f, 1.f }
-};
+// static struct
+// {
+//     float x, y;
+//     float r, g, b;
+// } vertices[3] =
+// {
+//     { -0.6f, -0.4f, 1.f, 0.f, 0.f },
+//     {  0.6f, -0.4f, 0.f, 1.f, 0.f },
+//     {   0.f,  0.6f, 0.f, 0.f, 1.f }
+// };
+//
+//
+//
+
+
+
 
 
 
@@ -132,7 +165,7 @@ int main(int, char**){
 #if __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "ImGui OpenGL3 example", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "Viewer", NULL, NULL);
     GLuint vbo,ibo,vao;
     GLint mvp_location, vpos_location, vcol_location;
     glfwMakeContextCurrent(window);
@@ -146,13 +179,141 @@ int main(int, char**){
     imgui_init();
 
 
+
+    // //Dummy data
+    // std::vector<glm::vec3> positions;
+    // std::vector<glm::vec3> colors;
+    // std::vector<glm::ivec3> faces;
+    //
+    // positions.push_back(glm::vec3(-0.6f, -0.4f, 0.f));
+    // positions.push_back(glm::vec3( 0.6f, -0.4f, 0.f));
+    // positions.push_back(glm::vec3( 0.f,  0.6f, 0.f));
+    //
+    // colors.push_back(glm::vec3(1.f, 0.f, 0.f ));
+    // colors.push_back(glm::vec3( 0.f, 1.f, 0.f ));
+    // colors.push_back(glm::vec3(0.f, 0.f, 1.f ));
+    //
+    // faces.push_back(glm::ivec3(0,1,2));
+
+
+    //Load ply
+    std::string file_path = "/media/alex/Data/Master/SHK/Data/euroc/mve_scene_inpainted/surface-L2-clean.ply";
+    // std::string file_path = "/media/alex/Data/Master/SHK/Data/euroc/mesh.ply"; //The one that first failed to load
+    // std::string file_path = "/media/alex/Data/Master/SHK/Data/Custom/custom_cyl_1.ply"; //doesnt correctly open since it doesnt have color
+    // std::string file_path = "/media/alex/Data/Master/SHK/Data/New_data/ply_3/optim_colored_o4.ply";
+    // PLYModel mesh (file_path.data(),false,true);
+    // PLYModel mesh (file_path.data(),false,true);
+    // // std::cout << "color  "<< mesh.colors[0][0] << '\n';
+    // std::cout << "bounds is "  << mesh.bvWidth << " "  << mesh.bvHeight << " " <<mesh.bvDepth << '\n';
+    // std::cout << "it is a mesh " << mesh.isMesh << '\n';
+    //
+    // for (size_t i = 0; i < 10; i++) {
+    //   std::cout << " positions is " << mesh.positions[i][0] << " " << mesh.positions[i][1] << " " << mesh.positions[i][2] << '\n';
+    // }
+
+
+
+    std::vector<float> verts;
+    std::vector<uint8_t> colors;
+    std::vector<uint32_t> faces;
+    //second way of reading ply file
+    // Tinyply can and will throw exceptions at you!
+  	try{
+  		std::ifstream ss(file_path, std::ios::binary);
+  		PlyFile file(ss);
+
+
+
+  		uint32_t vertexCount, normalCount, colorCount, faceCount, faceTexcoordCount, faceColorCount;
+  		vertexCount = normalCount = colorCount = faceCount = faceTexcoordCount = faceColorCount = 0;
+
+
+  		vertexCount = file.request_properties_from_element("vertex", { "x", "y", "z" }, verts);
+  		colorCount = file.request_properties_from_element("vertex", { "red", "green", "blue", "alpha" }, colors);
+  		faceCount = file.request_properties_from_element("face", { "vertex_indices" }, faces, 3);
+
+  		// Now populate the vectors...
+  		timepoint before = now();
+  		file.read(ss);
+  		timepoint after = now();
+
+      // for (size_t i = 0; i < 10; i++) {
+      //   std::cout << "verts is" << verts[i] << '\n';
+      // }
+
+  		// Good place to put a breakpoint!
+  		std::cout << "Parsing took " << difference_micros(before, after) << "μs: " << std::endl;
+  		std::cout << "\tRead " << verts.size() << " total vertices (" << vertexCount << " properties)." << std::endl;
+  		std::cout << "\tRead " << colors.size() << " total vertex colors (" << colorCount << " properties)." << std::endl;
+  		std::cout << "\tRead " << faces.size() << " total faces (triangles) (" << faceCount << " properties)." << std::endl;
+    }
+    catch (const std::exception & e)
+    {
+      std::cerr << "Caught exception: " << e.what() << std::endl;
+    }
+
+    std::vector <float> colors_gl(colors.size());
+    for (size_t i = 0; i < colors.size(); i++) {
+      // std::cout << "before is " << (int)colors[i] << '\n';
+      colors_gl[i]=colors[i]/255.0f;
+      // std::cout << "after is " << (float)colors_gl[i] << '\n';
+      // std::cout  << '\n';
+    }
+    colors.clear();
+
+
+    for (size_t i = 0; i < verts.size(); i++) {
+      if (std::fabs(verts[i])>100){
+        verts[i]=0.0;
+      }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     //buffers
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+    unsigned int size_positions=verts.size()*sizeof(float);
+    unsigned int size_colors=colors_gl.size()*sizeof(float);
+    unsigned int size_vbo= size_positions + size_colors;
+    unsigned int size_ibo= faces.size() *sizeof(uint32_t);
+    // unsigned int size_ibo= 1000 *sizeof(glm::ivec3);
+    std::cout << "size positions= " <<size_positions << '\n';
+    std::cout << "size colors= " <<size_colors << '\n';
+    std::cout << "size vbo= " << size_vbo << '\n';
+    std::cout << "size ibo= " << size_ibo << '\n';
+    glBufferData(GL_ARRAY_BUFFER, size_vbo  , nullptr, GL_STATIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, size_positions, verts.data());
+    glBufferSubData(GL_ARRAY_BUFFER, size_positions,
+                size_colors, colors_gl.data());
+
+
+
+
+    glGenBuffers(1, &ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_ibo, faces.data(), GL_STATIC_DRAW);
+    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(faces_2), faces_2, GL_DYNAMIC_DRAW);
 
 
     //Shaders
@@ -165,9 +326,11 @@ int main(int, char**){
     vpos_location = shader_program->attribute ( "vPos");
     vcol_location = shader_program->attribute ( "vCol");
     glEnableVertexAttribArray(vpos_location);
-    glVertexAttribPointer(vpos_location, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*) 0);
+    // glVertexAttribPointer(vpos_location, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*) 0);
+    glVertexAttribPointer(vpos_location, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(vcol_location);
-    glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,sizeof(float) * 5, (void*) (sizeof(float) * 2));
+    // glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,sizeof(float) * 5, (void*) (sizeof(float) * 2));
+    glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,0 , BUFFER_OFFSET(size_positions)  );
 
 
     glm::vec4 m_clear_color;
@@ -177,10 +340,20 @@ int main(int, char**){
     glm::vec3 across = glm::cross(target - pos, glm::vec3(0.0f, 1.0f, 0.0f));
     glm::vec3 up = glm::normalize(glm::cross(across, target - pos));
     float fov_y = glm::radians(70.0f);
-    unsigned int mLastUpdateTick;
-    double mLastMouseX, mouseX;
-    double mLastMouseY, mouseY;
+    unsigned int mLastUpdateTick=0;
+    double mLastMouseX=0.0, mouseX=0.0;
+    double mLastMouseY=0.0, mouseY=0.0;
     glfwSetScrollCallback(window, scroll_callback);
+
+
+
+
+
+
+
+
+    //-------------------LOOP-------------------------
+    std::cout << "entering loop" << '\n';
 
 
     while(true){
@@ -196,6 +369,9 @@ int main(int, char**){
       //If you don't clear it will keep appending to the framebuffer so maybe this is a way to draw each triangle individually
       glClear(GL_COLOR_BUFFER_BIT);
       glClearColor(m_clear_color.x, m_clear_color.y, m_clear_color.z, m_clear_color.w);
+
+        glCullFace(GL_FRONT /* or GL_BACK or even GL_FRONT_AND_BACK */);
+
 
 
 
@@ -218,7 +394,7 @@ int main(int, char**){
                   glm::value_ptr(up),
                   nullptr,
                   dtSec,
-                  0.1f, // zoom per tick
+                  0.2f, // zoom per tick
                   0.5f, // pan speed
                   3.0f, // rotation multiplier
                   width, height, // screen (window) size
@@ -240,10 +416,7 @@ int main(int, char**){
       shader_program->use();
 
       mat4x4_identity(m);
-      // mat4x4_rotate_Z(m, m, (float) glfwGetTime());
       mat4x4_ortho(p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-      // glm::mat4 P =glm::ortho( 0.f, 400.f, 0.f, 400.f, -1.f, 1.f );
-      // glm::mat4 P =glm::ortho( -ratio, ratio, -1.f, 1.f, 100000.f, -10000000.f );
       glm::mat4 P;
          {
              float f = 1.0f / tanf(fov_y / 2.0f);
@@ -256,22 +429,7 @@ int main(int, char**){
 
       glm::mat4 V = glm::lookAt(pos,target, up);
       glm::mat4 VP = P * V;
-      glm::mat4 MVP = VP ;
-
-
-
-      // {
-      // const float *pSource = (const float*)glm::value_ptr(V);
-      // for (int i = 0; i < 16; ++i){
-      //   if (i%4==0){
-      //     std::cout  << '\n';
-      //   }
-      //   std::cout <<  " " <<  pSource[i];
-      // }
-      // }
-      // std::cout << '\n';
-      // std::cout << '\n';
-      // std::cout << '\n';
+      glm::mat4 MVP = VP ;  //don't have yet a M matrix
 
       mat4x4_mul(mvp, p, m);
 
@@ -291,10 +449,13 @@ int main(int, char**){
 
 
 
-
-      // glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*) mvp);
       glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr (MVP));
-      glDrawArrays(GL_TRIANGLES, 0, 3);
+      // glDrawArrays(GL_TRIANGLES, 0, 3);
+
+      glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, 0 );
+      // glDrawElements(GL_TRIANGLES, 1, GL_UNSIGNED_INT, 0 );
+
+
 
 
 
